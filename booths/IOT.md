@@ -22,7 +22,7 @@ Reference: [How to Create a basic API using Django Rest Framework ?](https://www
 ## Yolo v8 Vehicle detection
 Use Yolo v8 for vehicle detection
 
-Reference: [wrong way driving detection | yolov8 wrong way vehicle detection | yolov8 traffic management](https://www.youtube.com/watch?v=1HBF5ytGKcg)
+Reference: [yolov8 traffic management](https://www.youtube.com/watch?v=1HBF5ytGKcg)
 
 ## ChatGPT to Rescue
 Lastly if you feel, you can't absolutely code in C. Give your prompt to ChatGPT.
