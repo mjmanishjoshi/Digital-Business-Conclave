@@ -1,0 +1,26 @@
+{
+  "name": "template",
+  "version": "1.0.0",
+  "description": "Template Application",
+  "main": "index.js",
+  "scripts": {
+    "build": "cd app && ng build",
+    "start": "node index.js",
+    "serve": "npm run build && npm run start",
+    "watch": "nodemon -e ts,js,json,html,scss --watch app/src -x \"npm run serve\""
+  },
+  "keywords": [
+    "Angular",
+    "PWA",
+    "Material"
+  ],
+  "author": "Manish Joshi",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.18.2",
+    "http-proxy-middleware": "^2.0.6"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.3"
+  }
+}
