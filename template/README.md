@@ -33,22 +33,48 @@ npm run firebase login
 ```
 
 ### Initialize
-
 ```
 npm run firebase init
 ```
 
 ### Preview
-
 ```
 npm run firebase:preview
 ```
 
 ### Deploy
-
 ```
 npm run firebase:deploy
 ```
+
+## Setup Authentication
+
+### Install AngularFire
+```
+ng add @angular/fire
+```
+
+### Setup FirebaseUI
+[Easily add sign-in to your Web app with FirebaseUI](https://firebase.google.com/docs/auth/web/firebaseui)
+
+### Setup Firebase Web App Config
+Copy the web app config to src/environments/environments.ts
+```js
+export const environment = {
+    production: true,
+    firebase: {
+        apiKey: "",
+        authDomain: "",
+        projectId: "",
+        storageBucket: "",
+        messagingSenderId: "",
+        appId: ""
+    }
+};
+```
+
+### Additional Settings
+* [Email enumeration protection](https://github.com/firebase/firebaseui-web/issues/1040#issuecomment-1914190991)
 
 ## Run
 
