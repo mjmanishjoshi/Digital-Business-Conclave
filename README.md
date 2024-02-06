@@ -10,3 +10,4 @@
 ## Starter templates
 - [Progressive Web Apps](https://github.com/mjmanishjoshi/Digital-Business-Conclave/tree/main/template)
 - [Firebase Hosting](https://github.com/mjmanishjoshi/Digital-Business-Conclave/pull/1)
+- [Firebase Authentication](https://github.com/mjmanishjoshi/Digital-Business-Conclave/pull/2)
