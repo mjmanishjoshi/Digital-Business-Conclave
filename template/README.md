@@ -26,3 +26,6 @@ Demo mode
 ```
 npm run serve
 ```
+
+## References
+* [Leaflet](https://leafletjs.com/)
