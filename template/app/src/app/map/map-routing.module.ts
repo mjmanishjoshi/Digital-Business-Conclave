@@ -1,14 +1,15 @@
 import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
+import { MapComponent } from './map/map.component';
 
 const routes: Routes = [
   {
-    path: 'map', loadChildren: () => import('./map/map.module').then(m => m.MapModule)
+    path: '', component: MapComponent
   }
 ];
 
 @NgModule({
-  imports: [RouterModule.forRoot(routes)],
+  imports: [RouterModule.forChild(routes)],
   exports: [RouterModule]
 })
-export class AppRoutingModule { }
+export class MapRoutingModule { }
