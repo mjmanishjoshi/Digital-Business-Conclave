@@ -166,6 +166,8 @@ export class XRSceneComponent implements AfterViewInit, AfterContentInit {
   //private loader = new GLTFLoader();
 
   private addObject() {
+	// Also see this example
+	// https://threejs.org/examples/?q=material#webgl_materials_car
     //this.loader.loadAsync('/assets/models/LightsPunctualLamp.glb').then((gltf) => {
       const color = Math.floor(0xffffff * Math.random());
       const object: SceneObject = {
