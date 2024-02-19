@@ -1,21 +1,18 @@
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { XRSceneComponent } from './xrscene/xrscene.component';
-import { XRSceneObject } from './scene';
 
 
 
 @NgModule({
   declarations: [
-    XRSceneComponent,
-    XRSceneObject
+    XRSceneComponent
   ],
   imports: [
     CommonModule
   ],
   exports: [
-    XRSceneComponent,
-    XRSceneObject
+    XRSceneComponent
   ]
 })
 export class XRModule { }

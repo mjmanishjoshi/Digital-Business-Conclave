@@ -1,10 +1,21 @@
-import { AfterContentInit, AfterViewInit, Component, ContentChildren, Directive, ElementRef, Input, NgZone, QueryList } from '@angular/core';
+import {
+  AfterContentInit, AfterViewInit, Component, ContentChildren,
+  Directive, ElementRef, Input, NgZone, QueryList
+} from '@angular/core';
 import * as THREE from 'three';
-//import { ARButton } from 'https://unpkg.com/three/examples/jsm/webxr/ARButton.js';
 import { ARButton } from 'three/examples/jsm/webxr/ARButton';
-import { LocationService } from '../location.service';
-import { ObjectService } from '../object.service';
-import { XRSceneObject } from '../scene';
+import { InteractiveGroup } from 'three/examples/jsm/interactive/InteractiveGroup';
+import { HTMLMesh } from 'three/examples/jsm/interactive/HTMLMesh';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
+
+import { GUI } from 'dat.gui';
+
+
+interface SceneObject {
+  id: number,
+  mesh: THREE.Object3D,//THREE.Mesh,
+  color: number
+}
 
 @Component({
   selector: 'app-xrscene',
@@ -13,10 +24,7 @@ import { XRSceneObject } from '../scene';
 })
 export class XRSceneComponent implements AfterViewInit, AfterContentInit {
 
-  @ContentChildren(XRSceneObject)
-  sceneObjects!: QueryList<XRSceneObject>;
-
-  private isXR = /Android|mobile|iPad|iPhone/i.test(navigator.userAgent);
+  private isXR = true;/*/Android|mobile|iPad|iPhone/i.test(navigator.userAgent);*/
 
   private scene!: THREE.Scene;
   private camera!: THREE.PerspectiveCamera;
@@ -24,13 +32,10 @@ export class XRSceneComponent implements AfterViewInit, AfterContentInit {
 
   private controller!: THREE.XRTargetRaySpace;
 
-  constructor(private element: ElementRef<HTMLElement>, private zone: NgZone,
-    private location: LocationService, private objects: ObjectService) {
+  constructor(private element: ElementRef<HTMLElement>, private zone: NgZone) {
   }
 
   ngAfterContentInit(): void {
-    if (this.sceneObjects)
-      this.objects.setObjects(this.sceneObjects);
   }
 
   ngAfterViewInit(): void {
@@ -41,10 +46,10 @@ export class XRSceneComponent implements AfterViewInit, AfterContentInit {
     const el = this.element.nativeElement;
     const rect = el.getBoundingClientRect();
     this.scene = new THREE.Scene();
-    this.camera = new THREE.PerspectiveCamera(70, rect.width / rect.height, 0.01, 1000);
-    //this.camera.position.set( 3, 0.15, 3 );
+    this.camera = new THREE.PerspectiveCamera(70, rect.width / rect.height, 0.01, 100);
 
-    const light = new THREE.HemisphereLight(0xffffff, 0xbbbbff, 1);
+    // Lighting - https://threejs.org/examples/webxr_ar_lighting.html
+    const light = new THREE.HemisphereLight(0xffffff, 0xbbbbff, 3);
     light.position.set(0.5, 1, 0.25);
     this.scene.add(light);
 
@@ -54,7 +59,7 @@ export class XRSceneComponent implements AfterViewInit, AfterContentInit {
       this.renderer.setSize(rect.width, rect.height);
       this.renderer.xr.enabled = true;
       el.appendChild(this.renderer.domElement);
-      el.appendChild(ARButton.createButton(this.renderer));
+      el.appendChild(ARButton.createButton(this.renderer, { requiredFeatures: ['hit-test'] }));
     }
     else {
       this.renderer = new THREE.WebGLRenderer();
@@ -74,7 +79,7 @@ export class XRSceneComponent implements AfterViewInit, AfterContentInit {
     window.addEventListener('resize', this.onWindowResize.bind(this), false);
 
     //this.zone.runOutsideAngular(() => {
-    this.renderer.setAnimationLoop(this.animate.bind(this));
+    this.renderer.setAnimationLoop(this.render.bind(this));
     //});
   }
 
@@ -88,28 +93,106 @@ export class XRSceneComponent implements AfterViewInit, AfterContentInit {
   }
 
   private onSelect() {
-    //this.mesh.position.set(0, 0, 5).applyMatrix4(this.controller.matrixWorld);
-    //this.mesh.quaternion.setFromRotationMatrix(this.controller.matrixWorld);
+    if (this.reticle.visible)
+      this.addObject();
   }
 
-  private animate() {
-    this.animateScene();
+  private hitTestSource: XRHitTestSource | null = null;
+  private hitTestSourceRequested = false;
+
+  private render(time: DOMHighResTimeStamp, frame: XRFrame) {
+    if (frame) {
+      const referenceSpace = this.renderer.xr.getReferenceSpace();
+      const session = this.renderer.xr.getSession();
+      if (session && this.hitTestSourceRequested === false) {
+        session.requestReferenceSpace('viewer').then((referenceSpace) => {
+          if (session.requestHitTestSource)
+            session.requestHitTestSource({ space: referenceSpace })?.then((source) => {
+              this.hitTestSource = source;
+            });
+        });
+
+        session.addEventListener('end', () => {
+          this.hitTestSourceRequested = false;
+          this.hitTestSource = null;
+        });
+
+        this.hitTestSourceRequested = true;
+      }
+
+      if (referenceSpace && this.hitTestSource) {
+        const hitTestResults = frame.getHitTestResults(this.hitTestSource);
+        if (hitTestResults.length > 0) {
+          const hit = hitTestResults[0];
+          this.reticle.visible = true;
+          const pose = hit.getPose(referenceSpace)
+          if (pose)
+            this.reticle.matrix.fromArray(pose.transform.matrix);
+        } else {
+          this.reticle.visible = false;
+        }
+      }
+    }
     this.renderer.render(this.scene, this.camera);
   }
 
-  private mesh!: THREE.Mesh;
+  private gui!: GUI;
+
+  private reticle!: THREE.Mesh;
 
   private initializeScene() {
-    const geometry = new THREE.CylinderGeometry(0, 0.05, 0.2, 32).rotateX(Math.PI / 2);
-    const material = new THREE.MeshPhongMaterial({ color: 0xffffff * Math.random() });
-    this.mesh = new THREE.Mesh(geometry, material);
-    this.scene.add(this.mesh);
-    this.mesh.position.set(0, 0, -1);
-    this.objects.initialize(this.scene);
+    this.gui = new GUI();
+    /*this.gui.domElement.style.visibility = 'hidden';
+    const group = new InteractiveGroup(this.renderer, this.camera);
+    this.scene.add(group);
+    const mesh = new HTMLMesh(this.gui.domElement);
+    mesh.position.x = - 0.75;
+    mesh.position.y = 1.5;
+    mesh.position.z = - 0.5;
+    mesh.rotation.y = Math.PI / 4;
+    mesh.scale.setScalar(2);
+    group.add(mesh);*/
+    this.reticle = new THREE.Mesh(
+      new THREE.RingGeometry(0.15, 0.2, 32).rotateX(- Math.PI / 2),
+      new THREE.MeshBasicMaterial()
+    );
+    this.reticle.matrixAutoUpdate = false;
+    this.reticle.visible = false;
+    this.scene.add(this.reticle);
   }
 
-  private animateScene() {
-    this.objects.update();
-    this.location.update(this.camera, this.sceneObjects);
+  private nextObjectId = 0;
+  private objects: SceneObject[] = [];
+  //private loader = new GLTFLoader();
+
+  private addObject() {
+    //this.loader.loadAsync('/assets/models/LightsPunctualLamp.glb').then((gltf) => {
+      const color = Math.floor(0xffffff * Math.random());
+      const object: SceneObject = {
+        id: this.nextObjectId++,
+        mesh: new THREE.Mesh(
+          new THREE.CylinderGeometry(0.1, 0.1, 0.2, 32).translate(0, 0.1, 0),
+          new THREE.MeshBasicMaterial({ color })),
+        //mesh: gltf.scene,
+        color
+      }
+      if (this.gui) {
+        const cubeFolder = this.gui.addFolder(`Object ${object.id}`);
+        cubeFolder.addColor(object, 'color').onChange((color) => {
+          if (object.mesh instanceof THREE.Mesh) {
+            const material = object.mesh.material;
+            if (material instanceof THREE.MeshBasicMaterial) {
+              material.color = new THREE.Color(color);
+            }
+          }
+        });
+      }
+      this.objects.push(object);
+      //object.mesh.position.set(0, 0, - 0.3).applyMatrix4(this.controller.matrixWorld);
+      //object.mesh.quaternion.setFromRotationMatrix(this.controller.matrixWorld);
+      let scale = new THREE.Vector3(1, 1, 1);
+      this.reticle.matrix.decompose(object.mesh.position, object.mesh.quaternion, scale); //mesh.scale
+      this.scene.add(object.mesh);
+    //});
   }
 }
