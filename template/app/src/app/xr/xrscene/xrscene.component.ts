@@ -7,6 +7,7 @@ import { ARButton } from 'three/examples/jsm/webxr/ARButton';
 import { InteractiveGroup } from 'three/examples/jsm/interactive/InteractiveGroup';
 import { HTMLMesh } from 'three/examples/jsm/interactive/HTMLMesh';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
+import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader';
 
 import { GUI } from 'dat.gui';
 
@@ -14,6 +15,7 @@ import { GUI } from 'dat.gui';
 interface SceneObject {
   id: number,
   mesh: THREE.Object3D,//THREE.Mesh,
+  //material: THREE.MeshPhysicalMaterial,
   color: number
 }
 
@@ -142,6 +144,21 @@ export class XRSceneComponent implements AfterViewInit, AfterContentInit {
 
   private initializeScene() {
     this.gui = new GUI();
+    /*
+    const test = {
+      test: 0xffffff
+    };
+    this.gui.addColor(test, 'test');
+    this.gui.domElement.style.visibility = 'hidden';
+    const group = new InteractiveGroup(this.renderer, this.camera);
+    this.scene.add(group);
+    const mesh = new HTMLMesh(this.gui.domElement);
+    mesh.position.set(0, 0, -0.5);
+    //mesh.rotation.y = Math.PI / 4;
+    //mesh.scale.setScalar(2);
+    group.add(mesh);
+
+    //*/
     /*this.gui.domElement.style.visibility = 'hidden';
     const group = new InteractiveGroup(this.renderer, this.camera);
     this.scene.add(group);
@@ -163,30 +180,53 @@ export class XRSceneComponent implements AfterViewInit, AfterContentInit {
 
   private nextObjectId = 0;
   private objects: SceneObject[] = [];
-  //private loader = new GLTFLoader();
+  private loader = new GLTFLoader();
+  private dracoLoader = new DRACOLoader();
+
 
   private addObject() {
-	// Also see this example
-	// https://threejs.org/examples/?q=material#webgl_materials_car
+    // Also see this example
+    // https://threejs.org/examples/?q=material#webgl_materials_car
     //this.loader.loadAsync('/assets/models/LightsPunctualLamp.glb').then((gltf) => {
+    this.dracoLoader.setDecoderPath('/assets/js/gltf/');
+    this.loader.setDRACOLoader(this.dracoLoader);
+    this.loader.loadAsync('/assets/models/ferrari.glb').then((gltf) => {
       const color = Math.floor(0xffffff * Math.random());
+      /*const bodyMaterial = new THREE.MeshPhysicalMaterial({
+        color: color, metalness: 1.0, roughness: 0.5, clearcoat: 1.0, clearcoatRoughness: 0.03
+      });*/
+      const bodyMaterial = new THREE.MeshBasicMaterial({ color });
+      const carModel = gltf.scene.children[0];
+      const body = carModel.getObjectByName('body');
+      if (body && body instanceof THREE.Mesh)
+        body.material = bodyMaterial;
       const object: SceneObject = {
         id: this.nextObjectId++,
-        mesh: new THREE.Mesh(
+        /*mesh: new THREE.Mesh(
           new THREE.CylinderGeometry(0.1, 0.1, 0.2, 32).translate(0, 0.1, 0),
-          new THREE.MeshBasicMaterial({ color })),
+          new THREE.MeshBasicMaterial({ color })),*/
         //mesh: gltf.scene,
+        mesh: carModel,
+        //material: bodyMaterial,
         color
       }
       if (this.gui) {
         const cubeFolder = this.gui.addFolder(`Object ${object.id}`);
         cubeFolder.addColor(object, 'color').onChange((color) => {
-          if (object.mesh instanceof THREE.Mesh) {
+          /*if (object.mesh instanceof THREE.Mesh) {
             const material = object.mesh.material;
             if (material instanceof THREE.MeshBasicMaterial) {
               material.color = new THREE.Color(color);
             }
-          }
+          }//*/
+          //object.material.color.set(color);
+          /*const bodyMaterial = new THREE.MeshPhysicalMaterial({
+            color: color, metalness: 1.0, roughness: 0.5, clearcoat: 1.0, clearcoatRoughness: 0.03
+          });*/
+          const bodyMaterial = new THREE.MeshBasicMaterial({ color });
+          const body = object.mesh.getObjectByName('body');
+          if (body && body instanceof THREE.Mesh)
+            body.material = bodyMaterial;
         });
       }
       this.objects.push(object);
@@ -195,6 +235,6 @@ export class XRSceneComponent implements AfterViewInit, AfterContentInit {
       let scale = new THREE.Vector3(1, 1, 1);
       this.reticle.matrix.decompose(object.mesh.position, object.mesh.quaternion, scale); //mesh.scale
       this.scene.add(object.mesh);
-    //});
+    });
   }
 }
